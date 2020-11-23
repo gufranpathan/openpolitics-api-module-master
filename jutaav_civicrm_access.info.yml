@@ -1,0 +1,6 @@
+name: Jutaav CiviCRM Access
+description: "Provides access to CiviCRM API using auth0 authorization"
+package: Custom
+type: module
+version: 1.0
+core: 8.x

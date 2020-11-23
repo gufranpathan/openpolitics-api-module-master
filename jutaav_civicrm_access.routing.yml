@@ -1,0 +1,43 @@
+jutaav_civicrm_access.callback:
+  path: '/jutaav_civicrm_access/civicrm/callback'
+  defaults:
+    _controller: '\Drupal\jutaav_civicrm_access\Controller\AuthController::callback'
+  requirements:
+    _access: 'TRUE'
+
+jutaav_civicrm_access.login:
+  path: '/jutaav_civicrm_access/login'
+  defaults:
+    _controller: '\Drupal\jutaav_civicrm_access\Controller\AuthController::login'
+  requirements:
+    _access: 'TRUE'
+
+jutaav_civicrm_access.signup:
+  path: '/jutaav_civicrm_access/signup'
+  defaults:
+    _controller: '\Drupal\jutaav_civicrm_access\Controller\AuthController::signup'
+  requirements:
+    _access: 'TRUE'
+
+jutaav_civicrm_access.updaterole:
+  path: '/jutaav_civicrm_access/updaterole'
+  defaults:
+    _controller: '\Drupal\jutaav_civicrm_access\Controller\AuthController::updateRole'
+  requirements:
+    _access: 'TRUE'
+
+jutaav_civicrm_access.webclient.settings:
+  path: '/admin/config/web/auth0'
+  defaults:
+    _form: '\Drupal\jutaav_civicrm_access\Form\WebSettingsForm'
+    _title: 'Auth0 Webclient Login Settings'
+  requirements:
+    _permission: 'administer site configuration'
+
+jutaav_civicrm_access.phoneapp.settings:
+  path: '/admin/config/phoneapp/auth0'
+  defaults:
+    _form: '\Drupal\jutaav_civicrm_access\Form\PhoneSettingsForm'
+    _title: 'Auth0 Phone Login Settings'
+  requirements:
+    _permission: 'administer site configuration'
