@@ -41,3 +41,17 @@ jutaav_civicrm_access.phoneapp.settings:
     _title: 'Auth0 Phone Login Settings'
   requirements:
     _permission: 'administer site configuration'
+jutaav_civicrm_access.set_user_workspace:
+ path: 'api/user/workspace1'
+ defaults:
+   _controller: '\Drupal\jutaav_civicrm_access\Controller\CustomEndpointsController::setUserWorkspace'
+ methods: [POST]
+ requirements:
+   _permission: 'update user workspaces'
+jutaav_civicrm_access.create_user_by_mail_phone:
+ path: 'api/user/create1'
+ defaults:
+   _controller: '\Drupal\jutaav_civicrm_access\Controller\CustomEndpointsController::createUserByMailPhone'
+ methods: [POST]
+ requirements:
+   _permission: 'create user by mail or phone'
