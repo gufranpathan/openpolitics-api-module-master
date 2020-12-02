@@ -21,20 +21,14 @@ class CustomEndpointsController extends ControllerBase {
    */
   public function setUserWorkspace(Request $request) {
 
-    if ( 0 === strpos( $request->headers->get( 'Content-Type' ), 'application/json' ) ) {
-      $data = json_decode( $request->getContent(), TRUE );
-      $request->request->replace( is_array( $data ) ? $data : [] );
-    }
-    else {
-      $this->returnBadRequest('Wrong content type format. Expecting application/json');
-    }
+    $status_code = 400;
+    $status_text = 'Unknown error';
+    $rest_data['message'] = 'Unknown error';
 
-    $cache_metadata = new CacheableMetadata();
-    $cache_metadata->setCacheTags(['auth0_user_workspace']);
-
-    $status_code = 200;
-    $status_text = 'OK';
-    $rest_data['message'] = 'ok';
+    $data = $this->checkRequestHeaders($request);
+    if (!is_array($data)) {
+      return $data;
+    }
 
     if (empty($data['userid'])) {
       return $this->returnBadRequest('The "userid" parameter is missed out.');
@@ -48,10 +42,10 @@ class CustomEndpointsController extends ControllerBase {
     if ($common->isTokenExpired()) {
       $common->authenticateAuth();
     }
-    $config = \Drupal::config('custom_endpoints.settings');
+    $config = \Drupal::config('jutaav_civicrm_access.webclient.settings');
     $method = 'patch';
-    $url = $config->get('provider-url') . '/api/v2/users/' . $data['userid'];
-    $token = $config->get('access_token');
+    $url = $config->get('auth0_domain') . '/api/v2/users/' . $data['userid'];
+    $token = $config->get('auth0_access_token');
     $uinfo = $common->getUserWorkspaces($data['userid']);
     if (isset($uinfo['message'])) {
       $rest_data = $workspaces['message'];
@@ -91,16 +85,13 @@ class CustomEndpointsController extends ControllerBase {
 
   public function createUserByMailPhone(Request $request) {
 
-    $status_code = 200;
-    $status_text = 'OK';
-    $rest_data['message'] = 'ok';
+    $status_code = 400;
+    $status_text = 'Unknown error';
+    $rest_data['message'] = 'Unknown error';
 
-    if ( 0 === strpos( $request->headers->get( 'Content-Type' ), 'application/json' ) ) {
-      $data = json_decode( $request->getContent(), TRUE );
-      $request->request->replace( is_array( $data ) ? $data : [] );
-    }
-    else {
-      $this->returnBadRequest('Wrong content type format. Expecting application/json');
+    $data = $this->checkRequestHeaders($request);
+    if (!is_array($data)) {
+      return $data;
     }
 
     if ((empty($data['phone'])) && (empty($data['mail']))) {
@@ -145,6 +136,7 @@ class CustomEndpointsController extends ControllerBase {
     $response = new CacheableJsonResponse($data);
     $response->setStatusCode($status_code, $reason);
     $response->addCacheableDependency($data);
+
     return $response;
   }
 
@@ -162,7 +154,7 @@ class CustomEndpointsController extends ControllerBase {
     $user = $jwt_verifier->verifyAndDecode($idToken);
 
     if (empty($user->email)) {
-      $this->returnBadRequest('No email address found for this user', 401);
+      return $this->returnBadRequest('No email address found for this user', 401);
     }
 
     $user = user_load_by_mail($user->email);
@@ -170,7 +162,143 @@ class CustomEndpointsController extends ControllerBase {
       return TRUE;
     }
     else {
-      $this->returnBadRequest('No authorized', 401);
+     return $this->returnBadRequest('No authorized', 401);
     }
+  }
+
+  public function getAuthConnections() {
+    $common = new Common();
+    if ($common->isTokenExpired()) {
+      $common->authenticateAuth();
+    }
+    $config = \Drupal::config('jutaav_civicrm_access.webclient.settings');
+    $method = 'get';
+    $url = $config->get('auth0_domain') . '/api/v2/connections';
+    $token = $config->get('auth0_access_token');
+    $headers = [
+      'Content-Type' => 'application/json',
+    ];
+
+    $request = $common->basicRequest($method, $url, '', $headers, $token);
+    $request_data = $request->getBody()->getContents();
+    $status_code = $request->getStatusCode();
+    $status_text = $request->getReasonPhrase();
+    $rest_data = $request_data;
+
+    return json_decode($request_data);
+  }
+
+  public function createAuthUserManager(Request $request) {
+
+    $data = $this->checkRequestHeaders($request);
+    if (!is_array($data)) {
+      return $data;
+    }
+
+    if (empty($data['email'])) {
+      return $this->returnBadRequest('The "email" parameter is missed out.');
+    }
+    else {
+      return $this->createAuthUserByGivenData($data, 'manager');
+    }
+  }
+
+  public function createAuthUserVolunteer(Request $request) {
+
+    $data = $this->checkRequestHeaders($request);
+    if (!is_array($data)) {
+      return $data;
+    }
+
+    if (empty($data['phone_number'])) {
+      return $this->returnBadRequest('The "phone_number" parameter is missed out.');
+    }
+    else {
+      return $this->createAuthUserByGivenData($data, 'volunteer');
+    }
+  }
+
+  protected function createAuthUserByGivenData($data, $role = 'manager') {
+
+    $status_code = 400;
+    $status_text = 'Unknown error';
+    $rest_data['message'] = 'Unknown error';
+
+    $common = new Common();
+    if ($common->isTokenExpired()) {
+      $common->authenticateAuth();
+    }
+    $config = \Drupal::config('jutaav_civicrm_access.webclient.settings');
+    $method = 'post';
+    $url = $config->get('auth0_domain') . '/api/v2/users';
+    $token = $config->get('auth0_access_token');
+
+    $headers = [
+      'Content-Type' => 'application/json',
+    ];
+
+    if ($role == 'manager') {
+      $body_arr = [
+        'email' => $data['email'],
+        'password' => user_password(),
+        'connection' => "Username-Password-Authentication",
+        'email_verified' => FALSE,
+        'verify_email' => TRUE,
+      ];
+    }
+    else {
+      $connections = $this->getAuthConnections();
+      if ($connections) {
+        $sms_connection = FALSE;
+        foreach ($connections as $connection) {
+          if ($connection->strategy == 'sms') {
+            $sms_connection = $connection->name;
+            break;
+          }
+        }
+        if ($sms_connection) {
+          $body_arr = [
+            'phone_number' => $data['phone_number'],
+            'connection' => $sms_connection,
+            'email_verified' => TRUE,
+            'phone_verified' => FALSE,
+          ];
+        }
+        else {
+          return $this->returnBadRequest(t('The sms connection is unavailable. Please contact the administrator.'));
+        }
+      }
+    }
+
+    $body = json_encode($body_arr);
+
+    $request = $common->basicRequest($method, $url, $body, $headers, $token);
+    $request_data = $request->getBody()->getContents();
+    $status_code = $request->getStatusCode();
+    $status_text = $request->getReasonPhrase();
+    $rest_data = $request_data;
+
+    $response = new CacheableJsonResponse($rest_data);
+    $response->setStatusCode($status_code, $status_text);
+    $response->addCacheableDependency($rest_data);
+
+    return $response;
+  }
+
+  protected function checkRequestHeaders($request) {
+
+    if ( 0 === strpos( $request->headers->get( 'Content-Type' ), 'application/json' ) ) {
+      $data = json_decode( $request->getContent(), TRUE );
+      $request->request->replace( is_array( $data ) ? $data : [] );
+    }
+    else {
+      return $this->returnBadRequest('Wrong content type format. Expecting application/json');
+    }
+
+    // if (FALSE === strpos($request->headers->get('Authentication'), 'Bearer')) {
+    //   return $this->returnBadRequest('The authentication token is missed out.', 401);
+    // }
+
+    return $data;
   }
 }

@@ -42,16 +42,30 @@ jutaav_civicrm_access.phoneapp.settings:
   requirements:
     _permission: 'administer site configuration'
 jutaav_civicrm_access.set_user_workspace:
- path: 'api/user/workspace1'
+ path: 'api/user/workspace'
  defaults:
    _controller: '\Drupal\jutaav_civicrm_access\Controller\CustomEndpointsController::setUserWorkspace'
  methods: [POST]
  requirements:
    _permission: 'update user workspaces'
 jutaav_civicrm_access.create_user_by_mail_phone:
- path: 'api/user/create1'
+ path: 'api/user/create'
  defaults:
    _controller: '\Drupal\jutaav_civicrm_access\Controller\CustomEndpointsController::createUserByMailPhone'
+ methods: [POST]
+ requirements:
+   _permission: 'create user by mail or phone'
+jutaav_civicrm_access.create_manager:
+ path: 'api/auth/create-manager'
+ defaults:
+   _controller: '\Drupal\jutaav_civicrm_access\Controller\CustomEndpointsController::createAuthUserManager'
+ methods: [POST]
+ requirements:
+   _permission: 'create user by mail or phone'
+jutaav_civicrm_access.create_volunteer:
+ path: 'api/auth/create-vol'
+ defaults:
+   _controller: '\Drupal\jutaav_civicrm_access\Controller\CustomEndpointsController::createAuthUserVolunteer'
  methods: [POST]
  requirements:
    _permission: 'create user by mail or phone'
